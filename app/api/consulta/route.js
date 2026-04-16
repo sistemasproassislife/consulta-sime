@@ -1,6 +1,6 @@
 export async function POST(req) {
   try {
-    const { cedula, valor, codser, codpre, coddia } = await req.json();
+    const { cedula, codser, coddia } = await req.json();
 
     const tokenResp = await fetch(process.env.OAUTH_TOKEN_URL, {
       method: "POST",
@@ -20,8 +20,11 @@ export async function POST(req) {
     if (!tokenResp.ok) {
       return Response.json(
         {
-          error: "No se pudo obtener el token",
-          detalle: tokenData,
+          fault: {
+            codigo: "",
+            descripcion: "No se pudo obtener el token de autenticación",
+            error: true,
+          },
         },
         { status: 500 }
       );
@@ -29,13 +32,11 @@ export async function POST(req) {
 
     const params = new URLSearchParams();
 
-    if (valor) params.append("valor", valor);
-    if (codser) params.append("codser", codser);
-    if (codpre) params.append("codpre", codpre);
+    if (codser && codser !== "TODOS") params.append("codser", codser);
     if (coddia) params.append("coddia", coddia);
 
     const queryString = params.toString();
-    const url = `${process.env.APEX_API_URL}/${encodeURIComponent(cedula)}${
+    const url = `${process.env.APEX_API_URL}/${encodeURIComponent(cedula || "")}${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -54,8 +55,11 @@ export async function POST(req) {
       data = JSON.parse(text);
     } catch {
       data = {
-        error: "La respuesta no es JSON válido",
-        raw: text,
+        fault: {
+          codigo: "",
+          descripcion: text || "La respuesta del servicio no es un JSON válido",
+          error: true,
+        },
       };
     }
 
@@ -63,7 +67,11 @@ export async function POST(req) {
   } catch (error) {
     return Response.json(
       {
-        error: "Error interno",
+        fault: {
+          codigo: "",
+          descripcion: "Error interno al consultar el servicio",
+          error: true,
+        },
         detalle: error.message,
       },
       { status: 500 }
